@@ -1,115 +1,104 @@
-# FlowtelAI Admin Panel
+# FlowtelAI AdminPanel
 
-A modern, responsive admin panel for managing meeting requests and slots built with React and Tailwind CSS.
+Modern admin dashboard for managing meeting requests, demo bookings, and newsletter subscriptions.
 
 ## Features
 
-- **Meeting Requests Management**: View, edit, confirm, and cancel meeting requests
-- **Meeting Slots Management**: Create and manage available time slots
-- **Real-time Status Updates**: Visual indicators for different meeting statuses
-- **Email Notifications**: Automatic email notifications for booking updates
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Interactive Calendar**: Easy date selection for slot management
+- **Meeting Management**: View, edit, confirm, and cancel meeting requests
+- **Real-time Dashboard**: Analytics and statistics overview
+- **Mobile Responsive**: Optimized for all device sizes
+- **Email Notifications**: Automated booking confirmations and updates
+- **Export Functionality**: CSV export for meeting data
+- **Inline Editing**: Direct table editing for dates and times
 
 ## Tech Stack
 
-- **Frontend**: React 18, Tailwind CSS
-- **UI Components**: PrimeReact, React Icons
-- **State Management**: React Hooks
-- **Styling**: Tailwind CSS with custom components
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/anilkumarsin329/FlowtelAIE-Adminpanel.git
-cd FlowtelAIE-Adminpanel
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the development server:
-```bash
-npm start
-```
-
-4. Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-## Available Scripts
-
-- `npm start` - Runs the app in development mode
-- `npm run build` - Builds the app for production
-- `npm test` - Launches the test runner
-- `npm run eject` - Ejects from Create React App (one-way operation)
-
-## Deployment
-
-This project is configured for easy deployment on Vercel:
-
-1. Push your code to GitHub
-2. Connect your GitHub repository to Vercel
-3. Deploy with automatic builds on every push
+- **Frontend**: React + Vite
+- **Styling**: Tailwind CSS + PrimeReact
+- **Icons**: React Icons
+- **Backend**: Node.js + Express + MongoDB
 
 ## Environment Variables
 
-Create a `.env` file in the root directory and add:
+Create a `.env` file with:
 
 ```
-REACT_APP_API_URL=your_backend_api_url
+VITE_API_BASE_URL=https://your-backend-url.com
 ```
+
+## Installation
+
+```bash
+npm install
+npm run dev
+```
+
+## Deployment
+
+### Vercel Deployment
+
+1. Connect GitHub repository to Vercel
+2. Set environment variable:
+   - `VITE_API_BASE_URL`: Your backend API URL
+3. Deploy automatically
+
+## Admin Credentials
+
+- **Username**: admin
+- **Password**: flowtel123
+
+## API Integration
+
+The admin panel connects to the FlowtelAI backend for:
+- Meeting request management
+- Demo booking handling
+- Newsletter subscription tracking
+- Email notification services
 
 ## Project Structure
 
 ```
 src/
-├── components/          # Reusable UI components
-├── Pages/              # Main application pages
-│   ├── MeetingRequestsPage.jsx
-│   └── MeetingSlotsPage.jsx
-├── utils/              # Utility functions
-├── App.js              # Main application component
-└── index.js            # Application entry point
+├── Components/
+│   ├── AdminPanel.jsx      # Main admin component
+│   ├── Login.jsx          # Authentication
+│   ├── Sidebar.jsx        # Navigation
+│   ├── Navbar.jsx         # Top navigation
+│   └── Dashboard.jsx      # Analytics dashboard
+├── Pages/
+│   ├── MeetingRequestsPage.jsx  # Meeting management
+│   └── MeetingSlotsPage.jsx     # Slot creation
+└── main.jsx               # App entry point
 ```
 
 ## Features Overview
 
 ### Meeting Requests
-- View all meeting requests in a responsive table
-- Filter by status (pending, confirmed, cancelled, available)
-- Search by name or email
-- Inline editing of date and time
-- Bulk actions and individual request management
-- Export data to CSV
+- View all meeting requests with filtering
+- Inline editing for date/time
+- Status management (pending/confirmed/cancelled)
+- Detailed view modal with complete information
+- Export to CSV functionality
 
-### Meeting Slots
-- Calendar-based date selection
-- Create individual or bulk time slots
-- Visual status indicators
-- Slot management (create/delete)
-- View booking details
+### Dashboard Analytics
+- Real-time statistics
+- Meeting status breakdown
+- Recent activity tracking
+- Visual indicators and charts
 
-## Contributing
+### Mobile Optimization
+- Responsive card layout for mobile
+- Touch-friendly interface
+- Optimized spacing and typography
+- Collapsible navigation
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## Backend Integration
 
-## License
+Connects to: `https://flowtelaiebackend-ai.onrender.com`
 
-This project is licensed under the MIT License.
-
-## Support
-
-For support, email support@flowtelai.com or create an issue in this repository.
+API endpoints used:
+- `GET /api/meetings/requests` - Fetch meeting requests
+- `PUT /api/meetings/requests/:id/status` - Update status
+- `POST /api/meetings/slots` - Create time slots
+- `GET /api/demo` - Demo requests
+- `GET /api/newsletter` - Newsletter subscribers
