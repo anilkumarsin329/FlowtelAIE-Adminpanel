@@ -57,10 +57,10 @@ export default function AdminPanel() {
       };
 
       const [demos, newsletters, requests, slots] = await Promise.all([
-        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/demo`),
-        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/newsletter`),
-        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/requests`),
-        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/date/${new Date().toISOString().split('T')[0]}`)
+        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/demo`),
+        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/newsletter`),
+        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/meetings/requests`),
+        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/meetings/date/${new Date().toISOString().split('T')[0]}`)
       ]);
 
       setDemoRequests(demos);
@@ -84,7 +84,7 @@ export default function AdminPanel() {
         body.cancellationReason = cancellationReason;
       }
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/requests/${requestId}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/meetings/requests/${requestId}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Basic ${credentials}`,
@@ -116,7 +116,7 @@ export default function AdminPanel() {
         '14:00', '14:30', '15:00', '15:30'
       ];
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/slots`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/meetings/slots`, {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${credentials}`,
