@@ -91,6 +91,54 @@ export default function NotificationsPage({
 
   return (
     <div className="space-y-6">
+      {/* Quick Actions - Moved to Top */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link 
+          to="/requests"
+          className="p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FiClock className="text-blue-600" size={16} />
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-800">Meeting Requests</h3>
+              <p className="text-sm text-gray-600">{meetingRequests.length} total</p>
+            </div>
+          </div>
+        </Link>
+        
+        <Link 
+          to="/demos"
+          className="p-4 bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-md transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+              <FiUsers className="text-green-600" size={16} />
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-800">Demo Requests</h3>
+              <p className="text-sm text-gray-600">{demoRequests.length} total</p>
+            </div>
+          </div>
+        </Link>
+        
+        <Link 
+          to="/newsletters"
+          className="p-4 bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+              <FiMail className="text-purple-600" size={16} />
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-800">Newsletter Subscribers</h3>
+              <p className="text-sm text-gray-600">{newsletters.length} total</p>
+            </div>
+          </div>
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
@@ -231,54 +279,6 @@ export default function NotificationsPage({
             })}
           </div>
         )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link 
-          to="/requests"
-          className="p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FiClock className="text-blue-600" size={16} />
-            </div>
-            <div>
-              <h3 className="font-medium text-gray-800">Meeting Requests</h3>
-              <p className="text-sm text-gray-600">{meetingRequests.length} total</p>
-            </div>
-          </div>
-        </Link>
-        
-        <Link 
-          to="/demos"
-          className="p-4 bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-md transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <FiUsers className="text-green-600" size={16} />
-            </div>
-            <div>
-              <h3 className="font-medium text-gray-800">Demo Requests</h3>
-              <p className="text-sm text-gray-600">{demoRequests.length} total</p>
-            </div>
-          </div>
-        </Link>
-        
-        <Link 
-          to="/newsletters"
-          className="p-4 bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-              <FiMail className="text-purple-600" size={16} />
-            </div>
-            <div>
-              <h3 className="font-medium text-gray-800">Newsletter Subscribers</h3>
-              <p className="text-sm text-gray-600">{newsletters.length} total</p>
-            </div>
-          </div>
-        </Link>
       </div>
     </div>
   );

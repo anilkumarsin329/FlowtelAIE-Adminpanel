@@ -4,8 +4,9 @@ import Login from './Components/Login';
 import Sidebar from './Components/Sidebar';
 import Navbar from './Components/Navbar';
 import DashboardPage from './Pages/DashboardPage';
-import MeetingRequestsPage from './Pages/MeetingRequestsPage';
+import MeetingRequestsPageImproved from './Pages/MettingRequest/MeetingRequestsPageImproved';
 import MeetingSlotsPage from './Pages/MeetingSlotsPage';
+import MeetingResultsPage from './Pages/MettingRequest/MeetingResultsPage';
 import DemoRequestsPage from './Pages/DemoRequestsPage';
 import NewsletterSubscribersPage from './Pages/NewsletterSubscribersPage';
 import NotificationsPage from './Pages/NotificationsPage';
@@ -24,6 +25,8 @@ function AdminLayout() {
   const [newsletters, setNewsletters] = useState([]);
   const [meetingRequests, setMeetingRequests] = useState([]);
   const [meetings, setMeetings] = useState([]);
+  const [meetingResults, setMeetingResults] = useState([]);
+  const [resultStats, setResultStats] = useState({});
 
   // Get active tab from current route
   const getActiveTab = () => {
@@ -71,17 +74,21 @@ function AdminLayout() {
         return fallback;
       };
 
-      const [demos, newsletters, requests, slots] = await Promise.all([
+      const [demos, newsletters, requests, slots, results, stats] = await Promise.all([
         fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/demo`),
         fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/newsletter`),
         fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/requests`),
-        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/date/${new Date().toISOString().split('T')[0]}`)
+        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/date/${new Date().toISOString().split('T')[0]}`),
+        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/meeting-results`),
+        fetchWithFallback(`${import.meta.env.VITE_API_BASE_URL}/api/meeting-results/stats`, {})
       ]);
 
       setDemoRequests(demos);
       setNewsletters(newsletters);
       setMeetingRequests(requests);
       setMeetings(slots);
+      setMeetingResults(results);
+      setResultStats(stats);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -104,52 +111,13 @@ function AdminLayout() {
       });
       
       if (response.ok) {
-        // Send confirmation email if status is confirmed
-        if (newStatus === 'confirmed') {
-          const request = meetingRequests.find(req => req._id === requestId);
-          if (request) {
-            await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/send-confirmation-email`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Basic ${credentials}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                email: request.email,
-                name: request.name,
-                date: request.date,
-                time: request.time,
-                message: request.message
-              })
-            });
-          }
-        }
-        // Send cancellation email if status is cancelled
-        if (newStatus === 'cancelled' && cancellationReason) {
-          const request = meetingRequests.find(req => req._id === requestId);
-          if (request) {
-            await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/send-cancellation-email`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Basic ${credentials}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                email: request.email,
-                name: request.name,
-                date: request.date,
-                time: request.time,
-                reason: cancellationReason
-              })
-            });
-          }
-        }
         fetchData();
-        // Refresh meeting slots to reflect changes
         const currentDate = new Date().toISOString().split('T')[0];
         fetchMeetingsByDate(currentDate);
-        const message = newStatus === 'confirmed' ? 'Meeting confirmed! Confirmation email sent to user.' : 
-                       newStatus === 'cancelled' ? 'Meeting cancelled! Cancellation email sent to user.' : 
+        
+        const message = newStatus === 'confirmed' ? 'Meeting confirmed!' : 
+                       newStatus === 'cancelled' ? 'Meeting cancelled!' :
+                       newStatus === 'completed' ? 'Meeting marked as completed! You can now add results.' :
                        'Status updated successfully';
         alert(message);
       } else {
@@ -250,11 +218,17 @@ function AdminLayout() {
   // Fetch meetings by date
   const fetchMeetingsByDate = async (date) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/slots/${date}`);
+      const credentials = btoa('admin:flowtel123');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/date/${date}`, {
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data) {
+        if (data.data) {
           setMeetings(data.data);
         } else {
           setMeetings([]);
@@ -440,6 +414,57 @@ function AdminLayout() {
     }
   };
 
+  // Save meeting result
+  const saveMeetingResult = async (meetingId, resultData) => {
+    try {
+      const credentials = btoa('admin:flowtel123');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meeting-results`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ meetingId, ...resultData })
+      });
+      
+      if (response.ok) {
+        fetchData();
+        alert('Meeting result saved successfully!');
+      } else {
+        const result = await response.json();
+        alert(result.error || 'Failed to save meeting result');
+      }
+    } catch (error) {
+      console.error('Error saving meeting result:', error);
+      alert('Failed to save meeting result');
+    }
+  };
+
+  // Update follow-up status
+  const updateFollowUpStatus = async (resultId, completed) => {
+    try {
+      const credentials = btoa('admin:flowtel123');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meeting-results/${resultId}/follow-up`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ followUpCompleted: completed })
+      });
+      
+      if (response.ok) {
+        fetchData();
+        alert('Follow-up status updated!');
+      } else {
+        alert('Failed to update follow-up status');
+      }
+    } catch (error) {
+      console.error('Error updating follow-up:', error);
+      alert('Failed to update follow-up status');
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('adminAuth');
     window.location.reload();
@@ -482,10 +507,12 @@ function AdminLayout() {
     ).length,
     pending: meetingRequests.filter(r => r.status === 'pending').length,
     confirmed: meetingRequests.filter(r => r.status === 'confirmed').length,
+    completed: meetingRequests.filter(r => r.status === 'completed').length,
     newsletters: newsletters.length,
     demos: demoRequests.length,
     availableSlots: meetings.filter(m => m.status === 'available').length,
-    bookedSlots: meetings.filter(m => m.status === 'booked').length
+    bookedSlots: meetings.filter(m => m.status === 'booked' || m.status === 'pending' || m.status === 'confirmed').length,
+    ...resultStats
   };
 
   return (
@@ -528,7 +555,7 @@ function AdminLayout() {
             <Route 
               path="/requests" 
               element={
-                <MeetingRequestsPage 
+                <MeetingRequestsPageImproved 
                   meetingRequests={meetingRequests} 
                   updateRequestStatus={updateRequestStatus}
                   updateMeetingRequest={updateMeetingRequest}
@@ -547,6 +574,17 @@ function AdminLayout() {
                   updateMeetingSlot={updateMeetingSlot}
                   fetchMeetingsByDate={fetchMeetingsByDate}
                   deleteAllSlotsForDate={deleteAllSlotsForDate}
+                />
+              } 
+            />
+            <Route 
+              path="/results" 
+              element={
+                <MeetingResultsPage 
+                  meetingResults={meetingResults || []}
+                  saveMeetingResult={saveMeetingResult}
+                  updateFollowUpStatus={updateFollowUpStatus}
+                  completedMeetings={meetingRequests.filter(r => r.status === 'completed' && !meetingResults.find(mr => mr.meetingId === r._id)) || []}
                 />
               } 
             />

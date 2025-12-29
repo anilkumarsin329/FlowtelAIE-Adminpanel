@@ -1,6 +1,6 @@
 import { 
   FiHome, FiUsers, FiMail, FiCalendar, FiClock, FiSettings, 
-  FiBarChart, FiLogOut, FiX 
+  FiBarChart, FiLogOut, FiX, FiFileText, FiBell 
 } from 'react-icons/fi';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ export default function Sidebar({ collapsed, mobileOpen, setMobileOpen, onLogout
     { id: 'analytics', label: 'Analytics', icon: FiBarChart, color: 'text-emerald-600', path: '/analytics' },
     { id: 'requests', label: 'Meeting Requests', icon: FiCalendar, color: 'text-violet-600', path: '/requests' },
     { id: 'meetings', label: 'Meeting Slots', icon: FiClock, color: 'text-amber-600', path: '/meetings' },
+    { id: 'results', label: 'Meeting Results', icon: FiFileText, color: 'text-blue-600', path: '/results' },
     { id: 'demos', label: 'Demo Requests', icon: FiUsers, color: 'text-cyan-600', path: '/demos' },
     { id: 'newsletters', label: 'Newsletter', icon: FiMail, color: 'text-rose-600', path: '/newsletters' },
     { id: 'settings', label: 'Settings', icon: FiSettings, color: 'text-slate-600', path: '/settings' }

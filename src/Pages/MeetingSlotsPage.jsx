@@ -48,11 +48,29 @@ export default function MeetingSlotsPage({
 
   const getSlotStatus = (time) => {
     const slot = meetings.find(s => s.time === time);
-    return slot ? slot.status : 'NOT_CREATED';
+    if (!slot) return 'NOT_CREATED';
+    
+    // Map backend status to frontend status
+    if (slot.status === 'available') return 'AVAILABLE';
+    if (slot.status === 'pending' || slot.status === 'confirmed' || slot.status === 'booked') return 'BOOKED';
+    
+    return slot.status;
   };
 
   const getSlotInfo = (time) => {
-    return meetings.find(s => s.time === time);
+    const slot = meetings.find(s => s.time === time);
+    if (!slot) return null;
+    
+    // Transform backend data to match frontend expectations
+    return {
+      ...slot,
+      user: slot.clientName ? {
+        name: slot.clientName,
+        email: slot.clientEmail,
+        phone: slot.clientPhone
+      } : null,
+      notes: slot.message
+    };
   };
 
   const renderSlotButton = (time, status, slotInfo) => {
