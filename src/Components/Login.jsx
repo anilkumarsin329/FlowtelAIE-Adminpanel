@@ -87,9 +87,7 @@ export default function Login({ onLogin }) {
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Demo Credentials:</p>
-          <p>Username: <span className="font-mono bg-gray-100 px-2 py-1 rounded">admin</span></p>
-          <p>Password: <span className="font-mono bg-gray-100 px-2 py-1 rounded">flowtel123</span></p>
+         
         </div>
       </div>
     </div>
