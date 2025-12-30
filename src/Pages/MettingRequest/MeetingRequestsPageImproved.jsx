@@ -212,9 +212,13 @@ export default function MeetingRequestsPageImproved({
   const getMenuActions = (request) => {
     const actions = [
       { label: 'View Details', action: () => handleViewRequest(request), icon: FiEye },
-      { label: 'Edit', action: () => handleEdit(request), icon: FiEdit2 },
       { label: 'Delete', action: () => handleDelete(request._id), icon: FiTrash2 }
     ];
+
+    // Only add Edit button if meeting is not completed
+    if (request.status !== 'completed') {
+      actions.splice(1, 0, { label: 'Edit', action: () => handleEdit(request), icon: FiEdit2 });
+    }
 
     if (request.status === 'pending') {
       actions.push(
@@ -331,38 +335,60 @@ export default function MeetingRequestsPageImproved({
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4 flex-1">
-              <div className="relative flex-1 max-w-md">
-                <FiSearch size={20} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-              </div>
-              
-              <div className="relative">
-                <FiFilter size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <select
-                  value={dateFilter}
-                  onChange={(e) => handleDateFilter(e.target.value)}
-                  className="pl-12 pr-8 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white min-w-[140px]"
+        <div className="rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6" style={{background: 'linear-gradient(to right, #eff6ff, #eef2ff)'}}>
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            {/* Left side - Search */}
+            <div className="relative w-full sm:w-64">
+              <FiSearch size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+              />
+            </div>
+
+            {/* Middle - Date Filter Switches */}
+            <div className="flex flex-wrap gap-2 items-center">
+              {[
+                { value: 'all', label: 'All' },
+                { value: 'today', label: 'Today' },
+                { value: 'yesterday', label: 'Yesterday' },
+                { value: '7days', label: '7 Days' }
+              ].map((filter) => (
+                <button
+                  key={filter.value}
+                  onClick={() => handleDateFilter(filter.value)}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    dateFilter === filter.value
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  }`}
                 >
-                  <option value="all">All Dates</option>
-                  <option value="today">Today</option>
-                  <option value="yesterday">Yesterday</option>
-                  <option value="7days">Last 7 Days</option>
-                </select>
+                  {filter.label}
+                </button>
+              ))}
+              
+              {/* Calendar Input */}
+              <div className="flex items-center gap-2 ml-2">
+                <FiCalendar size={16} className="text-gray-400" />
+                <input
+                  type="date"
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      console.log('Selected date:', e.target.value);
+                    }
+                  }}
+                />
               </div>
             </div>
             
+            {/* Right side - Export */}
             <button 
               onClick={exportToCSV}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto justify-center"
             >
               <FiDownload size={16} />
               Export
@@ -416,10 +442,10 @@ export default function MeetingRequestsPageImproved({
               </div>
             ) : (
               <>
-                {/* Table */}
-                <div className="overflow-x-auto">
+                {/* Fixed Height Table */}
+                <div style={{height: '500px', overflow: 'auto'}}>
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 sticky top-0">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Client</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-56">Contact</th>
@@ -431,7 +457,11 @@ export default function MeetingRequestsPageImproved({
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {meetingRequests.map((request) => (
-                        <tr key={request._id} className="hover:bg-gray-50">
+                        <tr 
+                          key={request._id} 
+                          className="hover:bg-gray-50 cursor-pointer" 
+                          onClick={() => handleViewRequest(request)}
+                        >
                           <td className="px-6 py-4 whitespace-nowrap w-48">
                             {editingId === request._id ? (
                               <input
@@ -541,14 +571,17 @@ export default function MeetingRequestsPageImproved({
                             ) : (
                               <div className="relative">
                                 <button
-                                  onClick={() => setOpenMenuId(openMenuId === request._id ? null : request._id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(openMenuId === request._id ? null : request._id);
+                                  }}
                                   className="p-1 rounded hover:bg-gray-50 text-gray-600"
                                 >
                                   <FiSettings size={16} />
                                 </button>
                                 
                                 {openMenuId === request._id && (
-                                  <div className="absolute right-0 top-8 w-40 bg-white rounded-lg shadow-lg border py-1 z-50">
+                                  <div className="absolute right-0 top-8 w-40 bg-white rounded-lg shadow-lg py-1 z-[9999]">
                                     {getMenuActions(request).map((action, index) => (
                                       <button
                                         key={index}
@@ -584,15 +617,15 @@ export default function MeetingRequestsPageImproved({
       {/* Click outside to close menu */}
       {openMenuId && (
         <div 
-          className="fixed inset-0 z-40" 
+          className="fixed inset-0 z-[9998]" 
           onClick={() => setOpenMenuId(null)}
         />
       )}
 
       {/* View Details Modal */}
       {showViewModal && selectedRequest && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-lg mx-4 shadow-2xl border border-gray-200 relative z-10 pointer-events-auto">
+        <div className="fixed inset-0 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-lg mx-4 shadow-2xl border border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Meeting Request Details</h3>
               <button
@@ -664,8 +697,8 @@ export default function MeetingRequestsPageImproved({
 
       {/* Cancellation Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-lg mx-4 shadow-2xl border border-gray-200 relative z-10 pointer-events-auto">
+        <div className="fixed inset-0 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-lg mx-4 shadow-2xl border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Cancel Meeting</h3>
             <p className="text-gray-600 mb-4">Please select a reason or add a message:</p>
             
