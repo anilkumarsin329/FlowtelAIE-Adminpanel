@@ -556,7 +556,9 @@ function AdminLayout() {
               path="/requests" 
               element={
                 <MeetingRequestsPageImproved 
-                  meetingRequests={meetingRequests} 
+                  meetingRequests={meetingRequests}
+                  loading={loading}
+                  onRefresh={fetchData}
                   updateRequestStatus={updateRequestStatus}
                   updateMeetingRequest={updateMeetingRequest}
                   deleteMeetingRequest={deleteMeetingRequest}

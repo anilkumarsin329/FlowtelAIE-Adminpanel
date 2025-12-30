@@ -2,18 +2,17 @@ import { useState, useEffect } from 'react';
 import { FiSearch, FiDownload, FiEdit2, FiTrash2, FiSave, FiX, FiSettings, FiCheck, FiXCircle, FiEye, FiUser, FiCalendar, FiFilter } from 'react-icons/fi';
 
 export default function MeetingRequestsPageImproved({ 
+  meetingRequests: propMeetingRequests = [],
   updateRequestStatus, 
   updateMeetingRequest, 
-  deleteMeetingRequest 
+  deleteMeetingRequest,
+  loading: propLoading = false,
+  onRefresh
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
+  const [customDateFilter, setCustomDateFilter] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [meetingRequests, setMeetingRequests] = useState([]);
-  const [totalItems, setTotalItems] = useState(0);
-  const [tabCounts, setTabCounts] = useState({ all: 0, confirmed: 0, completed: 0, pending: 0, cancelled: 0 });
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({});
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -24,114 +23,83 @@ export default function MeetingRequestsPageImproved({
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
 
-  const itemsPerPage = 10;
   const tabs = [{ id: 'all', label: 'All' }, { id: 'confirmed', label: 'Confirmed' }, { id: 'completed', label: 'Completed' }, { id: 'pending', label: 'Pending' }, { id: 'cancelled', label: 'Cancelled' }];
   const cancellationReasons = ['Schedule conflict', 'Client unavailable', 'Technical issues', 'Emergency situation', 'Resource unavailable', 'Other'];
 
-  const getDateRange = (filter) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    switch (filter) {
-      case 'today':
-        return { start: today.toISOString().split('T')[0], end: today.toISOString().split('T')[0] };
-      case 'yesterday':
-        return { start: yesterday.toISOString().split('T')[0], end: yesterday.toISOString().split('T')[0] };
-      case '7days':
-        return { start: sevenDaysAgo.toISOString().split('T')[0], end: today.toISOString().split('T')[0] };
-      default:
-        return null;
-    }
-  };
-
-  const fetchMeetingRequests = async (status = 'all', page = 1, search = '', dateFilterValue = dateFilter) => {
-    setLoading(true);
-    try {
-      const credentials = btoa('admin:flowtel123');
-      const params = new URLSearchParams({ page: page.toString(), limit: itemsPerPage.toString() });
-      if (status !== 'all') params.append('status', status);
-      if (search.trim()) params.append('search', search.trim());
+  // Filter data based on search, date, and tab
+  const filteredRequests = propMeetingRequests.filter(request => {
+    // Search filter
+    const searchMatch = !searchTerm || 
+      (request.clientName || request.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (request.clientEmail || request.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (request.clientPhone || request.phone || '').includes(searchTerm);
+    
+    // Status filter
+    const statusMatch = activeTab === 'all' || request.status === activeTab;
+    
+    // Date filter
+    let dateMatch = true;
+    if (dateFilter !== 'all') {
+      const requestDate = new Date(request.date);
+      const today = new Date();
       
-      const dateRange = getDateRange(dateFilterValue);
-      if (dateRange) {
-        params.append('dateFrom', dateRange.start);
-        params.append('dateTo', dateRange.end);
+      if (dateFilter === 'today') {
+        dateMatch = requestDate.toDateString() === today.toDateString();
+      } else if (dateFilter === 'yesterday') {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        dateMatch = requestDate.toDateString() === yesterday.toDateString();
+      } else if (dateFilter === '7days') {
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        dateMatch = requestDate >= sevenDaysAgo && requestDate <= today;
       }
-
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/requests?${params}`, {
-        headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setMeetingRequests(data.data || []);
-        setTotalItems(data.total || 0);
-        if (data.counts) setTabCounts(data.counts);
-      } else {
-        setMeetingRequests([]);
-        setTotalItems(0);
-      }
-    } catch (error) {
-      setMeetingRequests([]);
-      setTotalItems(0);
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const fetchTabCounts = async () => {
-    try {
-      const credentials = btoa('admin:flowtel123');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/requests/counts`, {
-        headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setTabCounts(data);
-      }
-    } catch (error) {
-      console.error('Error fetching tab counts:', error);
+    
+    // Custom date filter
+    if (customDateFilter) {
+      const requestDate = new Date(request.date).toDateString();
+      const filterDate = new Date(customDateFilter).toDateString();
+      dateMatch = requestDate === filterDate;
     }
+    
+    return searchMatch && statusMatch && dateMatch;
+  });
+  
+  // Calculate tab counts
+  const tabCounts = {
+    all: propMeetingRequests.length,
+    confirmed: propMeetingRequests.filter(r => r.status === 'confirmed').length,
+    completed: propMeetingRequests.filter(r => r.status === 'completed').length,
+    pending: propMeetingRequests.filter(r => r.status === 'pending').length,
+    cancelled: propMeetingRequests.filter(r => r.status === 'cancelled').length
   };
-
-  useEffect(() => {
-    fetchMeetingRequests(activeTab, currentPage, searchTerm, dateFilter);
-    fetchTabCounts();
-  }, [dateFilter]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
-    setCurrentPage(1);
     setSearchTerm('');
     setDateFilter('all');
-    fetchMeetingRequests(tabId, 1, '', 'all');
+    setCustomDateFilter('');
   };
 
   const handleSearch = (term) => {
     setSearchTerm(term);
-    setCurrentPage(1);
-    fetchMeetingRequests(activeTab, 1, term, dateFilter);
   };
 
   const handleDateFilter = (filter) => {
     setDateFilter(filter);
-    setCurrentPage(1);
-    fetchMeetingRequests(activeTab, 1, searchTerm, filter);
+    setCustomDateFilter('');
   };
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    fetchMeetingRequests(activeTab, page, searchTerm, dateFilter);
+  const handleCustomDateFilter = (date) => {
+    setCustomDateFilter(date);
+    setDateFilter('all');
   };
 
   const handleStatusUpdate = async (requestId, newStatus, reason = null) => {
     try {
       await updateRequestStatus(requestId, newStatus, reason);
-      fetchMeetingRequests(activeTab, currentPage, searchTerm, dateFilter);
-      fetchTabCounts();
+      if (onRefresh) onRefresh();
     } catch (error) {
       console.error('Error updating status:', error);
     }
@@ -172,12 +140,8 @@ export default function MeetingRequestsPageImproved({
   const handleEdit = (request) => {
     setEditingId(request._id);
     setEditData({
-      clientName: request.clientName || request.name || '',
-      clientEmail: request.clientEmail || request.email || '',
-      clientPhone: request.clientPhone || request.phone || '',
       date: formatDate(request.date),
-      time: request.time || '',
-      message: request.message || ''
+      time: request.time || ''
     });
   };
 
@@ -186,7 +150,7 @@ export default function MeetingRequestsPageImproved({
       await updateMeetingRequest(editingId, editData);
       setEditingId(null);
       setEditData({});
-      fetchMeetingRequests(activeTab, currentPage, searchTerm, dateFilter);
+      if (onRefresh) onRefresh();
     } catch (error) {
       console.error('Error updating meeting request:', error);
     }
@@ -201,8 +165,7 @@ export default function MeetingRequestsPageImproved({
     if (confirm('Are you sure you want to delete this meeting request?')) {
       try {
         await deleteMeetingRequest(id);
-        fetchMeetingRequests(activeTab, currentPage, searchTerm, dateFilter);
-        fetchTabCounts();
+        if (onRefresh) onRefresh();
       } catch (error) {
         console.error('Error deleting meeting request:', error);
       }
@@ -250,79 +213,31 @@ export default function MeetingRequestsPageImproved({
 
   const exportToCSV = async () => {
     try {
-      const credentials = btoa('admin:flowtel123');
-      const params = new URLSearchParams({ export: 'true' });
-      if (activeTab !== 'all') params.append('status', activeTab);
-      if (searchTerm.trim()) params.append('search', searchTerm.trim());
+      if (filteredRequests.length === 0) return alert('No data to export!');
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/requests?${params}`, {
-        headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' }
-      });
+      const headers = ['Name', 'Email', 'Phone', 'Date', 'Time', 'Status', 'Message', 'Created At'];
+      const csvContent = [
+        headers.join(','),
+        ...filteredRequests.map(request => [
+          `"${request.clientName || request.name || ''}"`,
+          `"${request.clientEmail || request.email || ''}"`,
+          `"${request.clientPhone || request.phone || ''}"`,
+          `"${request.date || ''}"`,
+          `"${request.time || ''}"`,
+          `"${request.status || ''}"`,
+          `"${request.message || ''}"`,
+          `"${new Date(request.createdAt).toLocaleDateString()}"`
+        ].join(','))
+      ].join('\n');
 
-      if (response.ok) {
-        const data = await response.json();
-        const requests = data.data || [];
-        if (requests.length === 0) return alert('No data to export!');
-
-        const headers = ['Name', 'Email', 'Phone', 'Date', 'Time', 'Status', 'Message', 'Created At'];
-        const csvContent = [
-          headers.join(','),
-          ...requests.map(request => [
-            `"${request.clientName || request.name || ''}"`,
-            `"${request.clientEmail || request.email || ''}"`,
-            `"${request.clientPhone || request.phone || ''}"`,
-            `"${request.date || ''}"`,
-            `"${request.time || ''}"`,
-            `"${request.status || ''}"`,
-            `"${request.message || ''}"`,
-            `"${new Date(request.createdAt).toLocaleDateString()}"`
-          ].join(','))
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `meeting-requests-${activeTab}-${new Date().toISOString().split('T')[0]}.csv`;
-        link.click();
-      }
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `meeting-requests-${activeTab}-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
     } catch (error) {
       alert('Failed to export data');
     }
-  };
-
-  const PaginationComponent = () => {
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    if (totalPages <= 1) return null;
-
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-
-    return (
-      <div className="flex items-center justify-between px-6 py-6 border-t border-gray-100 bg-gray-50">
-        <div className="text-sm font-medium text-gray-700">
-          Showing {startIndex + 1} to {endIndex} of {totalItems} results
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Previous
-          </button>
-          <span className="px-4 py-2 text-sm font-medium text-gray-700">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -375,12 +290,9 @@ export default function MeetingRequestsPageImproved({
                 <FiCalendar size={16} className="text-gray-400" />
                 <input
                   type="date"
+                  value={customDateFilter}
                   className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      console.log('Selected date:', e.target.value);
-                    }
-                  }}
+                  onChange={(e) => handleCustomDateFilter(e.target.value)}
                 />
               </div>
             </div>
@@ -398,13 +310,13 @@ export default function MeetingRequestsPageImproved({
 
         {/* Status Tabs */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-1 px-6 py-2" aria-label="Tabs">
+          <div className="border-b border-gray-200 overflow-x-auto">
+            <nav className="flex space-x-1 px-6 py-2 min-w-max" aria-label="Tabs">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -425,12 +337,12 @@ export default function MeetingRequestsPageImproved({
           
           {/* Content */}
           <div className="p-6">
-            {loading ? (
+            {propLoading ? (
               <div className="text-center py-16">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-4 text-gray-600 font-medium">Loading meeting requests...</p>
               </div>
-            ) : meetingRequests.length === 0 ? (
+            ) : filteredRequests.length === 0 ? (
               <div className="text-center py-16">
                 <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
                   <FiCalendar className="w-8 h-8 text-gray-400" />
@@ -442,34 +354,28 @@ export default function MeetingRequestsPageImproved({
               </div>
             ) : (
               <>
-                {/* Fixed Height Table */}
-                <div style={{height: '500px', overflow: 'auto'}}>
-                  <table className="w-full">
-                    <thead className="bg-gray-50 sticky top-0">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Client</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-56">Contact</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Date & Time</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {meetingRequests.map((request) => (
-                        <tr 
-                          key={request._id} 
-                          className="hover:bg-gray-50 cursor-pointer" 
-                          onClick={() => handleViewRequest(request)}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap w-48">
+                {/* Responsive Table */}
+                <div className="overflow-x-auto overflow-y-auto" style={{height: '500px'}}>
+                  <div className="min-w-full">
+                    <table className="w-full min-w-[800px]">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Client</th>
+                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Contact</th>
+                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Date & Time</th>
+                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">Purpose</th>
+                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Status</th>
+                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredRequests.map((request) => (
+                          <tr key={request._id} className="hover:bg-gray-50">
+                            <td className="px-3 sm:px-6 py-4 min-w-[150px]" onClick={(e) => e.stopPropagation()}>
                             {editingId === request._id ? (
-                              <input
-                                type="text"
-                                value={editData.clientName}
-                                onChange={(e) => setEditData({...editData, clientName: e.target.value})}
-                                className="w-full px-2 py-1 text-sm border rounded"
-                              />
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {request.clientName || request.name || 'N/A'}
+                              </div>
                             ) : (
                               <div className="flex items-center">
                                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
@@ -481,23 +387,11 @@ export default function MeetingRequestsPageImproved({
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4 w-56">
+                          <td className="px-3 sm:px-6 py-4 min-w-[180px]" onClick={(e) => e.stopPropagation()}>
                             {editingId === request._id ? (
-                              <div className="space-y-1">
-                                <input
-                                  type="email"
-                                  value={editData.clientEmail}
-                                  onChange={(e) => setEditData({...editData, clientEmail: e.target.value})}
-                                  className="w-full px-2 py-1 text-xs border rounded"
-                                  placeholder="Email"
-                                />
-                                <input
-                                  type="tel"
-                                  value={editData.clientPhone}
-                                  onChange={(e) => setEditData({...editData, clientPhone: e.target.value})}
-                                  className="w-full px-2 py-1 text-xs border rounded"
-                                  placeholder="Phone"
-                                />
+                              <div>
+                                <div className="text-sm text-gray-900 truncate">{request.clientEmail || request.email || 'N/A'}</div>
+                                <div className="text-xs text-gray-500 truncate">{request.clientPhone || request.phone || 'N/A'}</div>
                               </div>
                             ) : (
                               <div>
@@ -506,7 +400,7 @@ export default function MeetingRequestsPageImproved({
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap w-40">
+                          <td className="px-3 sm:px-6 py-4 min-w-[120px]" onClick={(e) => e.stopPropagation()}>
                             {editingId === request._id ? (
                               <div className="space-y-1">
                                 <input
@@ -533,26 +427,25 @@ export default function MeetingRequestsPageImproved({
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-3 sm:px-6 py-4 min-w-[200px]" onClick={(e) => e.stopPropagation()}>
                             {editingId === request._id ? (
-                              <textarea
-                                value={editData.message}
-                                onChange={(e) => setEditData({...editData, message: e.target.value})}
-                                className="w-full px-2 py-1 text-xs border rounded resize-none"
-                                rows={2}
-                              />
+                              <div>
+                                <div className="text-sm text-gray-900">
+                                  <p className="line-clamp-2">{request.message || 'No purpose specified'}</p>
+                                </div>
+                              </div>
                             ) : (
                               <div className="text-sm text-gray-900">
                                 <p className="line-clamp-2">{request.message || 'No purpose specified'}</p>
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap w-28">
+                          <td className="px-3 sm:px-6 py-4 min-w-[100px]" onClick={() => handleViewRequest(request)}>
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(request.status)}`}>
                               {getStatusLabel(request.status)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap w-24">
+                          <td className="px-3 sm:px-6 py-4 min-w-[80px]" onClick={(e) => e.stopPropagation()}>
                             {editingId === request._id ? (
                               <div className="flex space-x-1">
                                 <button
@@ -604,10 +497,8 @@ export default function MeetingRequestsPageImproved({
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
-
-                {/* Pagination */}
-                <PaginationComponent />
               </>
             )}
           </div>
