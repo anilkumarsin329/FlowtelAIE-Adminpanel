@@ -562,6 +562,7 @@ function AdminLayout() {
                   updateRequestStatus={updateRequestStatus}
                   updateMeetingRequest={updateMeetingRequest}
                   deleteMeetingRequest={deleteMeetingRequest}
+                  saveMeetingResult={saveMeetingResult}
                 />
               } 
             />

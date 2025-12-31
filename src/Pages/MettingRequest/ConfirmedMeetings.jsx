@@ -1,6 +1,6 @@
 import MeetingRequestsBase from '../../Components/MeetingRequestsBase';
 
-export default function ConfirmedMeetings({ updateRequestStatus, updateMeetingRequest, deleteMeetingRequest }) {
+export default function ConfirmedMeetings({ updateRequestStatus, updateMeetingRequest, deleteMeetingRequest, saveMeetingResult }) {
   return (
     <MeetingRequestsBase
       title="Confirmed Meetings"
@@ -8,6 +8,7 @@ export default function ConfirmedMeetings({ updateRequestStatus, updateMeetingRe
       updateRequestStatus={updateRequestStatus}
       updateMeetingRequest={updateMeetingRequest}
       deleteMeetingRequest={deleteMeetingRequest}
+      saveMeetingResult={saveMeetingResult}
     />
   );
 }

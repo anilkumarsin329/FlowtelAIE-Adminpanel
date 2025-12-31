@@ -10,7 +10,8 @@ import MeetingResultsPage from './MeetingResultsPage';
 export default function MeetingRequestsNavigation({ 
   updateRequestStatus, 
   updateMeetingRequest, 
-  deleteMeetingRequest 
+  deleteMeetingRequest,
+  saveMeetingResult
 }) {
   const [activeView, setActiveView] = useState('all');
 
@@ -61,6 +62,7 @@ export default function MeetingRequestsNavigation({
         updateRequestStatus={updateRequestStatus}
         updateMeetingRequest={updateMeetingRequest}
         deleteMeetingRequest={deleteMeetingRequest}
+        saveMeetingResult={saveMeetingResult}
       />
     </div>
   );

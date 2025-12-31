@@ -121,7 +121,7 @@ export default function Navbar({
 
             {/* Notification Popup */}
             {showNotifications && (
-              <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+              <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-w-[calc(100vw-2rem)] mx-2 sm:mx-0">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                   <h3 className="font-semibold text-gray-800">Notifications</h3>
                   <button 
@@ -132,7 +132,7 @@ export default function Navbar({
                   </button>
                 </div>
                 
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-80 sm:max-h-96 overflow-y-auto">
                   {(() => {
                     // Combine all notifications and sort by creation date
                     const allNotifications = [

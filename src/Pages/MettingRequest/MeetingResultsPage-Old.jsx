@@ -1,13 +1,29 @@
-import { useState } from 'react';
-import { FiEye, FiCalendar, FiUser, FiMail, FiPhone, FiFileText, FiClock, FiX } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiPlus, FiEye, FiCalendar, FiUser, FiMail, FiPhone, FiFileText, FiTarget, FiArrowRight, FiClock, FiX, FiCheck } from 'react-icons/fi';
 
 export default function MeetingResultsPage({ 
   meetingResults, 
+  saveMeetingResult, 
+  updateFollowUpStatus,
   deleteMeetingResult
 }) {
   console.log('MeetingResultsPage props:', { meetingResults });
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedResult, setSelectedResult] = useState(null);
+
+  const outcomes = [
+    { value: 'Interested', color: 'bg-green-100 text-green-800' },
+    { value: 'Not Interested', color: 'bg-red-100 text-red-800' },
+    { value: 'Need Time', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'Deal Closed', color: 'bg-blue-100 text-blue-800' }
+  ];
+
+  const nextActions = [
+    'Follow-up Call',
+    'Proposal Send', 
+    'Demo Required',
+    'None'
+  ];
 
   const handleDeleteResult = async (resultId) => {
     if (confirm('Are you sure you want to delete this meeting result?')) {
@@ -25,13 +41,8 @@ export default function MeetingResultsPage({
   };
 
   const getOutcomeStyle = (outcome) => {
-    const outcomes = {
-      'Interested': 'bg-green-100 text-green-800',
-      'Not Interested': 'bg-red-100 text-red-800',
-      'Need Time': 'bg-yellow-100 text-yellow-800',
-      'Deal Closed': 'bg-blue-100 text-blue-800'
-    };
-    return outcomes[outcome] || 'bg-gray-100 text-gray-800';
+    const outcomeObj = outcomes.find(o => o.value === outcome);
+    return outcomeObj ? outcomeObj.color : 'bg-gray-100 text-gray-800';
   };
 
   return (
@@ -41,7 +52,7 @@ export default function MeetingResultsPage({
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Meeting Results</h1>
-            <p className="text-gray-600 mt-1">View and manage meeting outcomes</p>
+            <p className="text-gray-600 mt-1">Track meeting outcomes and follow-ups</p>
           </div>
         </div>
       </div>
@@ -80,6 +91,7 @@ export default function MeetingResultsPage({
                       </span>
                       {result.nextAction !== 'None' && (
                         <div className="flex items-center gap-2">
+                          <FiArrowRight className="text-gray-500" size={14} />
                           <span className="text-sm text-gray-600">{result.nextAction}</span>
                           {result.followUpDate && (
                             <span className="text-xs text-gray-500">
@@ -117,6 +129,193 @@ export default function MeetingResultsPage({
           </div>
         )}
       </div>
+
+      {/* Add Result Modal */}
+      {showAddModal && selectedMeeting && (
+        <div className="fixed inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Add Meeting Result</h3>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+              
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Meeting Info */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-800 mb-2">Meeting Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Client:</span>
+                      <span className="ml-2 font-medium">{selectedMeeting.clientName}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Date:</span>
+                      <span className="ml-2">{new Date(selectedMeeting.date).toLocaleDateString()} at {selectedMeeting.time}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Email:</span>
+                      <span className="ml-2">{selectedMeeting.clientEmail}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Phone:</span>
+                      <span className="ml-2">{selectedMeeting.clientPhone}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Meeting Summary */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Meeting Summary *</label>
+                  <textarea
+                    value={formData.meetingSummary}
+                    onChange={(e) => setFormData({...formData, meetingSummary: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                    placeholder="What was discussed in the meeting?"
+                    required
+                  />
+                </div>
+
+                {/* Client Requirement */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Client Requirement *</label>
+                  <textarea
+                    value={formData.clientRequirement}
+                    onChange={(e) => setFormData({...formData, clientRequirement: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={2}
+                    placeholder="What does the client need?"
+                    required
+                  />
+                </div>
+
+                {/* Outcome */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Outcome *</label>
+                  <select
+                    value={formData.outcome}
+                    onChange={(e) => setFormData({...formData, outcome: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    {outcomes.map(outcome => (
+                      <option key={outcome.value} value={outcome.value}>{outcome.value}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Next Action */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Next Action *</label>
+                  <select
+                    value={formData.nextAction}
+                    onChange={(e) => setFormData({...formData, nextAction: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    {nextActions.map(action => (
+                      <option key={action} value={action}>{action}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Follow-up Date */}
+                {formData.nextAction !== 'None' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Follow-up Date</label>
+                    <input
+                      type="date"
+                      value={formData.followUpDate}
+                      onChange={(e) => setFormData({...formData, followUpDate: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                )}
+
+                {/* Admin Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Internal Notes</label>
+                  <textarea
+                    value={formData.adminNotes}
+                    onChange={(e) => setFormData({...formData, adminNotes: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={2}
+                    placeholder="Internal admin notes (not visible to client)"
+                  />
+                </div>
+
+                {/* Recording Section */}
+                <div className="border-t pt-6">
+                  <h4 className="font-medium text-gray-800 mb-4">Meeting Recording (Optional)</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Recording Type</label>
+                      <select
+                        value={formData.recordingType}
+                        onChange={(e) => setFormData({...formData, recordingType: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="audio">Audio Recording</option>
+                        <option value="video">Video Recording</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+                      <input
+                        type="number"
+                        value={formData.recordingDuration}
+                        onChange={(e) => setFormData({...formData, recordingDuration: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="e.g., 30"
+                        min="1"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Recording URL/Link</label>
+                    <input
+                      type="url"
+                      value={formData.recordingUrl}
+                      onChange={(e) => setFormData({...formData, recordingUrl: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="https://example.com/recording.mp4"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Paste the URL of your meeting recording (Google Drive, Dropbox, etc.)</p>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Saving...' : 'Save Result'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* View Result Modal */}
       {showViewModal && selectedResult && (

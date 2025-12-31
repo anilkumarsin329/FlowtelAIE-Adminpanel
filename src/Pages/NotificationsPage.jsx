@@ -13,14 +13,21 @@ export default function NotificationsPage({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+console.log('NotificationsPage props:', { 
+    meetingRequests: meetingRequests?.length || 0, 
+    demoRequests: demoRequests?.length || 0, 
+    newsletters: newsletters?.length || 0,
+    viewedNotifications: viewedNotifications?.size || 0
+  });
+  
   // Combine all notifications with timestamps
   const allNotifications = [
     ...meetingRequests.map(req => ({
       id: req._id,
       type: 'meeting',
-      title: `Meeting Request from ${req.name}`,
-      description: `Meeting scheduled for ${req.date} at ${req.time}`,
-      details: `Contact: ${req.email} | Phone: ${req.phone}`,
+      title: `Meeting Request from ${req.clientName}`,
+      description: `Meeting scheduled for ${new Date(req.date).toLocaleDateString()} at ${req.time}`,
+      details: `Contact: ${req.clientEmail} | Phone: ${req.clientPhone}`,
       status: req.status,
       timestamp: new Date(req.createdAt),
       icon: FiClock,
